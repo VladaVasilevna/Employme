@@ -1,0 +1,14 @@
+[
+    {
+        "title": "Python Developer",
+        "url": "https://example.com/vacancy1",
+        "salary": 100000,
+        "description": "Разработка приложений на Python."
+    },
+    {
+        "title": "Java Developer",
+        "url": "https://example.com/vacancy2",
+        "salary": 0,
+        "description": "Разработка приложений на Java."
+    }
+]

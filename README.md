@@ -48,7 +48,7 @@
 
 ## Как запустить проект:
 
-     ```bash python manage.py runserver```
+     ```bash python main.py runserver```
 
 ## Тестирование
 - Для всех фунцкций в проекте написаны тесты.

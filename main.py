@@ -1,15 +1,6 @@
-from src.api import HHAPI
-from src.vacancy import Vacancy
-from src.storage import JSONStorage
-from src.user_interface import user_interface
-
-
-def main():
-    api = HHAPI()
-    storage = JSONStorage()
-
-    user_interface(api, storage)
-
+from src.api import HeadHunterAPI
+from src.user_interface import user_interaction
 
 if __name__ == "__main__":
-    main()
+    hh_api = HeadHunterAPI()
+    user_interaction(hh_api)

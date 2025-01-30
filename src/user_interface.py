@@ -1,64 +1,120 @@
-from src.vacancy import Vacancy
+from src.utils import format_salary
 
 
-def format_salary(salary):
-    if salary is None or (isinstance(salary, int) and salary == 0):
-        return "Уровень дохода не указан"
-    elif isinstance(salary, dict):
-        salary_from = salary.get('from')
-        salary_to = salary.get('to')
-        currency = salary.get('currency', 'руб.')
-        if salary_from and salary_to:
-            return f"от {salary_from:,} до {salary_to:,} {currency} на руки"
-        elif salary_from:
-            return f"от {salary_from:,} {currency} на руки"
-        elif salary_to:
-            return f"до {salary_to:,} {currency} на руки"
-    return "Уровень дохода не указан"
-
-
-def user_interface(api, storage):
+def user_interaction(api):
+    """Функция для взаимодействия с пользователем."""
     while True:
-        print("1. Получить вакансии по запросу")
-        print("2. Получить топ N вакансий по зарплате")
-        print("3. Получить вакансии с ключевым словом в описании")
-        print("4. Выход")
+        try:
+            # Шаг 1: Ввод запроса для поиска вакансий
+            query = input("Введите запрос для поиска вакансий из hh.ru: ").strip()
 
-        choice = input("Выберите действие: ")
+            # Получаем вакансии из API
+            vacancies = api.get_vacancies(query)
+            print(f"Найдено {len(vacancies)} вакансий.")
 
-        if choice == '1':
-            keyword = input("Введите поисковый запрос: ").strip()
-            vacancies_data = api.get_vacancies(keyword)
-            if vacancies_data:
-                vacancies = [
-                    Vacancy(v['name'], v['alternate_url'], v.get('salary'), v.get('snippet', {}).get('requirement', ''))
-                    for v in vacancies_data]
-                storage.save(vacancies)
-                print(f"Получено {len(vacancies)} вакансий.")
+            if not vacancies:
+                print("\nПо вашему запросу ничего не найдено. Попробуйте еще раз.")
+                continue
 
-        elif choice == '2':
-            n = int(input("Введите количество вакансий для отображения: "))
-            vacancies = storage.load()
-            top_vacancies = sorted(vacancies, reverse=True)[:n]
-            for vacancy in top_vacancies:
-                print(vacancy.title)
-                print(f"Зарплата: {vacancy.formatted_max_salary()}")
-                print(f"Ссылка: {vacancy.url}\n")
+            # Шаг 2: Ввод числа N для вывода топ N вакансий по зарплате
+            while True:
+                n_input = input("\nВывести топ N вакансий по зарплате: ").strip()
+                if n_input.isdigit():
+                    n = int(n_input)
+                    break
+                else:
+                    print("Некорректный запрос. Повторите попытку.")
 
-        elif choice == '3':
-            keyword = input("Введите ключевое слово: ")
-            vacancies = storage.load()
-            filtered_vacancies = [
-                v for v in vacancies
-                if v.description and keyword.lower() in v.description.lower()
-            ]
-            for vacancy in filtered_vacancies:
-                print(vacancy.title)
-                print(f"Зарплата: {vacancy.salary()}")
-                print(f"Ссылка: {vacancy.url}\n")
+            # Шаг 3: Отфильтровать по валюте
+            unique_currencies = {
+                vac["salary"]["currency"]
+                for vac in vacancies
+                if isinstance(vac.get("salary"), dict) and "currency" in vac["salary"]
+            }
 
-        elif choice == '4':
-            break
+            if not unique_currencies:
+                print("\nПо вашему запросу ничего не найдено. Попробуйте еще раз.")
+                continue
 
-        else:
-            print("Неверный выбор. Попробуйте снова.")
+            currency_list = sorted(list(unique_currencies))
+
+            while True:
+                print("\nОтфильтровать по валюте? Если нет, нажмите Enter, если да, выберите валюту:")
+                for idx, currency in enumerate(currency_list, start=1):
+                    print(f"{idx}. {currency}")
+
+                currency_input = input().strip()
+                if not currency_input:
+                    filtered_by_currency = vacancies
+                    print(f"Найдено {len(filtered_by_currency)} вакансий.")
+                    break
+
+                if currency_input.isdigit() and 1 <= int(currency_input) <= len(currency_list):
+                    selected_currency = currency_list[int(currency_input) - 1]
+                    filtered_by_currency = [
+                        vac
+                        for vac in vacancies
+                        if isinstance(vac.get("salary"), dict) and vac["salary"]["currency"] == selected_currency
+                    ]
+                    print(f"Найдено {len(filtered_by_currency)} вакансий.")
+                    break
+                else:
+                    print("Некорректный запрос. Повторите попытку.")
+
+            # Шаг 4: Фильтрация по ключевому слову в описании
+            while True:
+                filter_keyword = (
+                    input("\nОтфильтровать полученные вакансии по ключевому слову в описании? y/n: ").strip().lower()
+                )
+                if filter_keyword in ["y", "да", "yes"]:
+                    keyword = input("\nВведите ключевое слово для поиска в описании: ").strip()
+                    filtered_final = [
+                        vac for vac in filtered_by_currency if keyword.lower() in vac.get("description", "").lower()
+                    ]
+
+                    print(f"Найдено {len(filtered_final)} вакансий.")
+
+                    if not filtered_final:
+                        print("По вашему запросу ничего не найдено. Попробуйте еще раз.")
+                        continue
+                    break
+                elif filter_keyword in ["n", "нет", "no", ""]:
+                    filtered_final = filtered_by_currency
+                    print(f"Найдено {len(filtered_final)} вакансий.")
+                    break
+
+            # Шаг 5: Вывод вакансий с учетом условий сравнения зарплаты
+            top_vacancies = sorted(
+                filtered_final,
+                key=lambda x: (
+                    (
+                        x.get("salary", {}).get("to")
+                        if isinstance(x.get("salary"), dict) and x["salary"].get("to") is not None
+                        else (x["salary"].get("from") if isinstance(x.get("salary"), dict) else 0)
+                    )
+                ),
+                reverse=True,
+            )[:n]
+
+            if len(top_vacancies) < n:
+                print("\nК сожалению, были найдены только эти вакансии по вашему запросу:")
+
+            for i, vacancy in enumerate(top_vacancies, start=1):
+                salary_display = format_salary(vacancy.get("salary", {}))  # Обработка случая, если salary отсутствует
+                print(
+                    f"{i}. {vacancy.get('name', 'Без названия')}\n{salary_display}\n{vacancy.get('alternate_url', 'Нет ссылки')}\n"
+                )
+
+            # Шаг 6: Запрос на продолжение поиска вакансий
+            while True:
+                continue_search = input("\nПродолжить поиск вакансий? y/n: ").strip().lower()
+                if continue_search in ["y", "yes", "да"]:
+                    break  # Возвращаемся к началу цикла и начинаем заново
+                elif continue_search in ["n", "no", "нет", ""]:
+                    print("\nСпасибо, что воспользовались нашим приложением! Надеюсь, вы нашли то, что искали.")
+                    return  # Завершаем выполнение функции
+                else:
+                    print("Некорректный запрос. Повторите попытку.")
+
+        except Exception as e:
+            print(f"Произошла ошибка: {e}. Попробуйте еще раз.")
