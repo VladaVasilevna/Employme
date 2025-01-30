@@ -1,36 +1,50 @@
-import requests
 from abc import ABC, abstractmethod
+import requests
 
 
 class AbstractAPI(ABC):
     @abstractmethod
-    def get_vacancies(self, keyword):
+    def connect(self):
+        """Метод для подключения к API."""
+        pass
+
+    @abstractmethod
+    def get_vacancies(self, query):
+        """Метод для получения вакансий по запросу."""
         pass
 
 
-class HHAPI(AbstractAPI):
-    def __init__(self):
-        self.url = 'https://api.hh.ru/vacancies'
-        self.headers = {
-            'User-Agent': 'Employme'
-        }
+class HeadHunterAPI(AbstractAPI):
+    __BASE_URL = "https://api.hh.ru/vacancies"
 
-    def get_vacancies(self, keyword):
-        params = {'text': keyword, 'page': 0, 'per_page': 100}
-        vacancies = []
+    def connect(self):
+        """Подключение к API hh.ru (проверка доступности)."""
+        try:
+            response = requests.get(self.__BASE_URL)
+            response.raise_for_status()
+            return True
+        except requests.exceptions.RequestException as e:
+            print(f"Ошибка подключения: {e}")
+            return False
 
-        while True:
-            response = requests.get(self.url, headers=self.headers, params=params)
-            if response.status_code != 200:
-                print(f"Ошибка: {response.status_code}")
-                break
+    def get_vacancies(self, query):
+        """Получение вакансий по запросу."""
+        if not self.connect():
+            return []
 
-            data = response.json()
-            items = data.get('items', [])
-            if not items:
-                break
+        params = {'text': query}
+        response = requests.get(self.__BASE_URL, params=params)
 
-            vacancies.extend(items)
-            params['page'] += 1
+        if response.status_code == 200:
+            return response.json().get('items', [])
+        else:
+            print(f"Ошибка получения вакансий: {response.status_code}")
+            return []
 
-        return vacancies
+
+if __name__ == "__main__":
+    hh_api = HeadHunterAPI()
+    vacancies = hh_api.get_vacancies("Python Developer")
+
+    for vacancy in vacancies:
+        print(f"Название: {vacancy['name']}, Ссылка: {vacancy['alternate_url']}")
