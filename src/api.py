@@ -1,4 +1,5 @@
 from abc import ABC, abstractmethod
+
 import requests
 
 
@@ -32,11 +33,11 @@ class HeadHunterAPI(AbstractAPI):
         if not self.connect():
             return []
 
-        params = {'text': query}
+        params = {"text": query}
         response = requests.get(self.__BASE_URL, params=params)
 
         if response.status_code == 200:
-            return response.json().get('items', [])
+            return response.json().get("items", [])
         else:
             print(f"Ошибка получения вакансий: {response.status_code}")
             return []

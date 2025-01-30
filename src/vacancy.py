@@ -1,5 +1,5 @@
 class Vacancy:
-    __slots__ = ['title', 'url', 'salary', 'description']
+    __slots__ = ["title", "url", "salary", "description"]
 
     def __init__(self, title, url, salary=None, description=""):
         self.title = title
@@ -17,28 +17,13 @@ class Vacancy:
         else:
             raise ValueError("Зарплата должна быть положительным числом или None.")
 
-    def __lt__(self, other):
-        """Сравнение по зарплате (меньше)."""
-        return self.salary < other.salary if isinstance(other, Vacancy) else NotImplemented
-
-    def __le__(self, other):
-        """Сравнение по зарплате (меньше или равно)."""
-        return self.salary <= other.salary if isinstance(other, Vacancy) else NotImplemented
-
-    def __eq__(self, other):
-        """Сравнение по зарплате (равно)."""
-        return self.salary == other.salary if isinstance(other, Vacancy) else NotImplemented
-
-    def __gt__(self, other):
-        """Сравнение по зарплате (больше)."""
-        return self.salary > other.salary if isinstance(other, Vacancy) else NotImplemented
-
-    def __ge__(self, other):
-        """Сравнение по зарплате (больше или равно)."""
-        return self.salary >= other.salary if isinstance(other, Vacancy) else NotImplemented
+    def to_dict(self):
+        """Возвращает атрибуты объекта в виде словаря."""
+        return {"title": self.title, "url": self.url, "salary": self.salary, "description": self.description}
 
     def __repr__(self):
         """Строковое представление объекта вакансии."""
         salary_display = "Зарплата не указана" if self.salary == 0 else self.salary
-        return (f"Vacancy(title={self.title}, url={self.url}, "
-                f"salary={salary_display}, description={self.description})")
+        return (
+            f"Vacancy(title={self.title}, url={self.url}, " f"salary={salary_display}, description={self.description})"
+        )

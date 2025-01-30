@@ -1,8 +1,8 @@
 def format_salary(salary: dict) -> str:
     """Форматирует строку зарплаты в зависимости от значений from и to."""
-    salary_from = salary.get('from')
-    salary_to = salary.get('to')
-    currency = salary.get('currency', '')
+    salary_from = salary.get("from")
+    salary_to = salary.get("to")
+    currency = salary.get("currency", "")
 
     if salary_from is None and salary_to is None:
         return "Зарплата не указана"
